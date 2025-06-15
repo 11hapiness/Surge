@@ -25,9 +25,6 @@ import type { MaybePromise } from './lib/misc';
 const readLocalRejectDomainsetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'domainset/reject.conf'));
 const readLocalRejectExtraDomainsetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'domainset/reject_extra.conf'));
 const readLocalRejectRulesetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/reject.conf'));
-const readLocalRejectDropRulesetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/reject-drop.conf'));
-const readLocalRejectNoDropRulesetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/reject-no-drop.conf'));
-const readLocalMyRejectRulesetPromise = readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/my_reject.conf'));
 
 const hostsDownloads = HOSTS.map(entry => processHostsWithPreload(...entry));
 const hostsExtraDownloads = HOSTS_EXTRA.map(entry => processHostsWithPreload(...entry));
@@ -178,11 +175,20 @@ export const buildRejectDomainSet = task(require.main === module, __filename)(as
   rejectOutputAdGuardHome.domainTrie = rejectOutput.domainTrie;
 
   await rejectOutputAdGuardHome
-    .addFromRuleset(readLocalMyRejectRulesetPromise)
+    // .addFromRuleset(readLocalMyRejectRulesetPromise)
     .addFromRuleset(readLocalRejectRulesetPromise)
-    .addFromRuleset(readLocalRejectDropRulesetPromise)
-    .addFromRuleset(readLocalRejectNoDropRulesetPromise)
+    .addFromRuleset(readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/reject-drop.conf')))
+    .addFromRuleset(readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/reject-no-drop.conf')))
     .addFromDomainset(readLocalRejectExtraDomainsetPromise)
-    // .
+    .write();
+
+  const myRejectOutputAdGuardHome = new AdGuardHomeOutput(span, 'my-reject-adguardhome', OUTPUT_INTERNAL_DIR)
+    .withTitle('Sukka\'s Ruleset - Blocklist for AdGuardHome (Sukka)')
+    .withDescription([
+      'The AdGuardHome for Sukka only'
+    ]);
+
+  await myRejectOutputAdGuardHome
+    .addFromRuleset(readFileIntoProcessedArray(path.join(SOURCE_DIR, 'non_ip/my_reject.conf')))
     .write();
 });
